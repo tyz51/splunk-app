@@ -1,0 +1,215 @@
+<form theme="dark">
+  <label>Team Health Dashboard</label>
+  <fieldset submitButton="false" autoRun="true">
+    <input type="dropdown" token="proj" searchWhenChanged="true">
+      <label>Project Name</label>
+      <search>
+        <query>* source="hoarder" index="testautomation" projectName NOT ("ECommerce UX") projectName NOT ("conduit") projectName NOT ("Reporting") projectName!="Conversations" | dedup projectName | sort projectName</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+      <fieldForLabel>projectName</fieldForLabel>
+      <fieldForValue>projectName</fieldForValue>
+    </input>
+    <input type="dropdown" token="effective_date" searchWhenChanged="true">
+      <label>Year</label>
+      <fieldForLabel>year</fieldForLabel>
+      <fieldForValue>year</fieldForValue>
+      <search>
+        <query>* source=hoarder | eval d = strptime(done, "%m/%d/%y %I:%M %p") |   eval year = strftime(d, "%Y")  | table year | dedup year</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+      <default>2020</default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Delivery Lead Time</title>
+      <chart>
+        <title>The time it takes for a user story to go from a "Done" status to released to Production systems</title>
+        <search>
+          <query>* source="hoarder" index="testautomation" projectName="$proj$" fixVersionIsReleased=true | dedup projectKey
+            | eval d = strptime(done, "%m/%d/%y %I:%M %p")
+            | eval fixVersionDate = strftime(relative_time(strptime(fixVersionDate, "%m/%d/%y %I:%M %p"),"+615m"), "%m/%d/%y %I:%M %p")
+            | eval fvd = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval deliveryLeadTimeFromDoneToRelease = (fvd - d)/86400
+            | eval month = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval Month = strftime(month, "%b")
+            | eval month_number=strftime(month, "%m")
+            | eval year = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval Year = strftime(year, "%Y")
+            | table projectKey, type, fixVersion, done, fixVersionDate, deliveryLeadTimeFromDoneToRelease, Year Month, month_number
+            | where Year = $effective_date$
+            | stats count as "Total Stories", avg(eval(round(deliveryLeadTimeFromDoneToRelease,2))) as "Average Delivery Lead Time", min(eval(round(deliveryLeadTimeFromDoneToRelease,2))) as "Min Lead Time", max(eval(round(deliveryLeadTimeFromDoneToRelease,2))) as "Max Lead Time" by Month, month_number | sort _ month_number | fields - month_number | trendline sma3("Average Delivery Lead Time") as DLTTREND</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.text">Days</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisY.maximumNumber">25</option>
+        <option name="charting.axisY.minimumNumber">-2</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.overlayFields">DLTTREND</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">small</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Deployment Frequency</title>
+      <chart>
+        <title>The frequency as a proxy for batch size since it is easy to measure and typically has low variability. In other words, (desirable) smaller batches correlate with higher deployment frequency</title>
+        <search>
+          <query>* source = "Hoarder_DeploymentFrequency" index="testautomation" status="GO"
+            | dedup release_version
+            | spath output=t teams{}
+            | eval date=strptime(release_date, "%d %B %Y")
+            | convert TIMEFORMAT="%m" ctime(date) AS month
+            | convert TIMEFORMAT="%Y" ctime(date) AS year
+            | eval Month = strftime(date, "%b")
+            | mvexpand t
+            | eval team=split(t,",")
+            | eval team_name=case("$proj$"=="eCommerce Engine", "Ecommerce Engine","$proj$"=="eCommerce Store", "Ecommerce Store","$proj$"=="Platform ", "Platform","$proj$"=="Phoenix", "Reporting", "$proj$"=="Project404", "Project 404", "$proj$"=="FINANCE", "FinDev", "$proj$"=="Mobile", "Mobillica", "$proj$"=="Social/HC", "Social", "$proj$"=="Integrations Two", "Integrations1", "$proj$"=="Conversations Consumer", "Conversations CC", "$proj$"=="Conversations Enterprise", "Conversations", true(), "$proj$")
+            | table release_date, release_version, date, month, Month, year, team, team_name | where trim(team)=trim(team_name) AND year=$effective_date$
+            | chart count as Total by Month
+            | eval sort=case(Month=="Jan","1", Month=="Feb","2", Month=="Mar","3",Month=="Apr","4",Month=="May","5", Month=="Jun","6", Month=="Jul","7", Month=="Aug","8", Month=="Sep","9", Month=="Oct","10", Month=="Nov","11", Month=="Dec","12")| sort sort |fields - sort</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.axisLabelsY.majorUnit">1</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.showDataLabels">minmax</option>
+        <option name="charting.drilldown">all</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Mean Time To Restore (MTTR) / Outages</title>
+      <chart>
+        <title>As software failures are expected, it makes more sense to measure how quickly teams recover from failure than how often they happen</title>
+        <search>
+          <query>* source="Hoarder_MTTR" index="testautomation" projectName="$proj$" fixVersionIsReleased=true| dedup projectKey
+            | eval c = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval f = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval d = strptime(done, "%m/%d/%y %I:%M %p")
+            | eval mttr_fix = (f - c) / 86400
+            | eval mttr_done = round((d - c) / 86400,2)
+            | eval month = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval Month = strftime(month, "%b")
+            | eval month_number=strftime(month, "%m")
+            | eval year = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval Year = strftime(year, "%Y")
+            | eval _time=strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | table projectKey, type, fixVersion, affectedVersion, fixVersionDate, done, created, mttr_fix, mttr_done, Month, month_number, Year, _time
+            | where Year = $effective_date$
+            | makecontinuous _time span=7d
+            | bucket _time span=1d
+            | stats values(mttr_done) as "MTTR" by projectKey</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">-45</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">1</option>
+        <option name="height">277</option>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <link target="_blank">https://jira.workhuman.com/browse/$click.value$</link>
+        </drilldown>
+      </chart>
+    </panel>
+    <panel>
+      <title>Change Fail Rate</title>
+      <chart>
+        <title>A proxy measure for quality throughout the process</title>
+        <search>
+          <query>*  source = "Hoarder_DeploymentFrequency" index="testautomation" status="GO"
+            | dedup release_version
+            | spath output=t teams{}
+            | eval date=strptime(release_date, "%d %B %Y")
+            | convert TIMEFORMAT="%m" ctime(date) AS month
+            | convert TIMEFORMAT="%Y" ctime(date) AS year
+            | eval Month = strftime(date, "%b")
+            | mvexpand t
+            | eval team=split(t,",")
+            | eval team_name=case("$proj$"=="Phoenix", "Reporting", "$proj$"=="Project404", "Project 404", "$proj$"=="FINANCE", "FinDev", "$proj$"=="Mobile", "Mobillica", "$proj$"=="Social/HC", "Social", "$proj$"=="Integrations Two", "Integrations1", "$proj$"=="Conversations Consumer", "Conversations CC", "$proj$"=="Conversations Enterprise", "Conversations", true(), "$proj$")
+            | table release_date, release_version, date, month, Month, year, team, team_name
+            | where team=team_name AND year=$effective_date$
+            | eval total = 0
+            | table release_version, total
+            | append [search  * source="Hoarder_MTTR" index="testautomation" projectName=$proj$ | dedup projectKey
+            |  rename affectedVersion as release_version
+            | eval total = 1
+            | table release_version, total]
+            | table release_version, total
+            | chart sum(total) by release_version</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">-90</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Mean Time to restore "High, Highest, Urgent" Support Request</title>
+      <chart>
+        <search>
+          <query>* source="Hoarder_SupportRequest" index="testautomation" projectName="$proj$"  type="Support Request" | dedup projectKey
+            | where priority in ("High", "Highest", "Urgent")
+            AND
+            NOT status IN ("Will Not Implement","Cannot Reproduce", "Rejected", "Not Valid", "Won't Fix", "Duplicate")
+            | eval c = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval f = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval d = strptime(done, "%m/%d/%y %I:%M %p")
+            | eval mttr_fix = (f - c) / 86400
+            | eval mttr_done = round((d - c) / 86400,2)
+            | eval month = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval Month = strftime(month, "%b")
+            | eval month_number=strftime(month, "%m")
+            | eval year = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval Year = strftime(year, "%Y")
+            | table projectKey, type, fixVersion, affectedVersion, fixVersionDate, done, created, mttr_fix, mttr_done, Month, month_number, Year
+            | where Year = 2020
+            | chart eval(round(values(mttr_done),2)) AS "Time from Create to Done" by projectKey | sort - c</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.axisLabelsY.majorUnit">1</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <link target="_blank">https://jira.workhuman.com/browse/$click.value$</link>
+        </drilldown>
+      </chart>
+    </panel>
+  </row>
+</form>

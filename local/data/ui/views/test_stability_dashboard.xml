@@ -1,0 +1,146 @@
+<form>
+  <label>Test stability dashboard</label>
+  <fieldset submitButton="false">
+    <input type="time" token="time_frame" searchWhenChanged="true">
+      <label>Select time frame</label>
+      <default>
+        <earliest>-30d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="projects" searchWhenChanged="true">
+      <label>Select project</label>
+      <choice value="*">all teams</choice>
+      <fieldForLabel>projects</fieldForLabel>
+      <fieldForValue>projects</fieldForValue>
+      <search>
+        <query>* source="Automated Test Failure Reasons"
+          |  search jobName!="{SMOKE} ZTEAM1" | eval projects = trim(replace(projects, "project_1:", ""))
+          | eval projects = trim(replace(projects, "project_2:", ""))
+          | eval projects = trim(replace(projects, "project_3:", ""))
+          | eval projects = trim(replace(projects, "project_4:", ""))
+          | eval projects = trim(replace(projects, "project_5:", ""))
+          | eval projects = trim(replace(projects, "project_6:", ""))
+          | dedup projects</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+      <default>*</default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>SMOKE test Failures Reasons (last 30 days by default)</title>
+      <chart>
+        <title>Smoke test failure reason</title>
+        <search>
+          <query>* source="Automated Test Failure Reasons" testStage=smoke
+            | search jobName!="{SMOKE} ZTEAM1"
+            |  spath projects | search projects="$projects$" | stats count by failureReason | rename failureReason as "Failure Reason"</query>
+          <earliest>$time_frame.earliest$</earliest>
+          <latest>$time_frame.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>Failure reasons pie chart</title>
+        <search>
+          <query>* source="Automated Test Failure Reasons" testStage=smoke
+            | search jobName!="{SMOKE} ZTEAM1" | spath projects | search projects="$projects$" | stats  count by failureReason</query>
+          <earliest>$time_frame.earliest$</earliest>
+          <latest>$time_frame.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Failure details for "OTHER" failure reason</title>
+        <search>
+          <query>* source="Automated Test Failure Reasons" testStage=smoke| search jobName!="{SMOKE} ZTEAM1"
+            |  spath projects | search projects="$projects$" | spath failureReason | search failureReason=Other   failureDetails!="TEST IGNORE"  failureDetails!="IGNORE TEST"  failureDetails!="INGNORE TEST"| stats count by failureDetails
+            | rename failureDetails as "Failure Details"
+            | sort -count</query>
+          <earliest>$time_frame.earliest$</earliest>
+          <latest>$time_frame.latest$</latest>
+        </search>
+        <option name="count">15</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="totalsRow">false</option>
+      </table>
+    </panel>
+    <panel>
+      <chart>
+        <title>Fail rate</title>
+        <search>
+          <query>* source=testNg| spath "customFields.testStage" | search "customFields.testStage"=smoke
+            | spath description | search description="*$teamNameFromJira$*"
+            | timechart count by executionStatus</query>
+          <earliest>$time_frame.earliest$</earliest>
+          <latest>$time_frame.latest$</latest>
+        </search>
+        <option name="charting.chart">area</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <input type="dropdown" token="teamNameFromJira">
+        <label>Team name</label>
+        <choice value="*">All teams</choice>
+        <choice value="OPSDEV">Cogs</choice>
+        <choice value="CONV">Conversations</choice>
+        <choice value="PF">Easel</choice>
+        <choice value="EP">Ecommverce Engine</choice>
+        <choice value="ECOM">Ecommerce Store</choice>
+        <choice value="FIN">Findev</choice>
+        <choice value="INT">Integrations</choice>
+        <choice value="MOB">Mobilica</choice>
+        <choice value="REP">Phoenix</choice>
+        <choice value="SLF">Project404</choice>
+        <choice value="SOC">Social/HC</choice>
+        <choice value="REC">SWAT</choice>
+        <fieldForLabel>teamNameFromJira</fieldForLabel>
+        <fieldForValue>teamNameFromJira</fieldForValue>
+        <search>
+          <query/>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <default>*</default>
+        <initialValue>*</initialValue>
+      </input>
+      <chart>
+        <title>Smoke test PASS/FAIL time chart</title>
+        <search>
+          <query>* source=testNg| spath "customFields.testStage" | search "customFields.testStage"=smoke
+            | spath description | search description="*$teamNameFromJira$*"
+            | timechart count by executionStatus</query>
+          <earliest>$time_frame.earliest$</earliest>
+          <latest>$time_frame.latest$</latest>
+        </search>
+        <option name="charting.axisTitleX.text">Time span</option>
+        <option name="charting.axisTitleY.text">Smoke test result events</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.placement">top</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+</form>

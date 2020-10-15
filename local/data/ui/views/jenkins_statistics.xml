@@ -1,0 +1,247 @@
+<form>
+  <label>Jenkins Statistics</label>
+  <fieldset submitButton="false"></fieldset>
+  <row>
+    <panel>
+      <title>Build statistics by day for last 7 days (defalut value)</title>
+      <input type="time" token="timeframe" searchWhenChanged="true">
+        <label>Select time frame</label>
+        <default>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </default>
+      </input>
+      <chart>
+        <search>
+          <query>index=jenkins event_tag=job_event job_result!=null type=completed | timechart count by job_result</query>
+          <earliest>$timeframe.earliest$</earliest>
+          <latest>$timeframe.latest$</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.text">time frame</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">top</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Number of jobs started during last 24 hours</title>
+      <chart>
+        <search>
+          <query>index=jenkins source="/job_event" type=started | bucket _time span=1m | stats count by _time</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.axisTitleX.text">last 24 hours</option>
+        <option name="charting.axisTitleY.text">jenkins job runs</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Top 10 jenkins jobs for last 30 days</title>
+      <chart>
+        <search>
+          <query>index=jenkins event_tag=job_event type=started | stats count by job_name | sort -count | head 10</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">45</option>
+        <option name="charting.axisTitleY.text">number of runs</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">log</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Top 10 Jenkins users for last 30 days</title>
+      <chart>
+        <search>
+          <query>index=jenkins event_tag=job_event type=started | stats count by user | sort -count | head 10</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.axisTitleY.text">job runs</option>
+        <option name="charting.axisY.scale">log</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Jenkins usage statistics by hour for last 24 h</title>
+      <chart>
+        <search>
+          <query>index="jenkins" source="/job_event" | timechart span=1h count(job_result)</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.axisTitleX.text">last 24 hours</option>
+        <option name="charting.axisTitleY.text">number of jobs</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">log</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Job statuses for the last 7 days</title>
+      <chart>
+        <search>
+          <query>index=jenkins event_tag=job_event  | stats count by job_result</query>
+          <earliest>@w0</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Statistics by query type for last 30 days</title>
+      <chart>
+        <search>
+          <query>index=jenkins | stats  count as job_type count(eval(searchmatch("Freestyle project"))) AS Insert count(eval(searchmatch("Pipeline"))) AS Pipeline</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.axisTitleX.text">Job type</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.text">Job type</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>automation-core/PluginTest job</title>
+        <search>
+          <query>type=completed job_name="automation-core/PluginTest" job_result="FAILURE" OR job_result="SUCCESS"
+            | transaction job_name startswith=(job_result="FAILURE") endswith=(job_result="SUCCESS")
+            | sort -build_number| eval TimeToFix(min)=duration/60
+            | table job_name job_result build_number TimeToFix(min) _time duration</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <single>
+        <title>automation-core/PluginTest job</title>
+        <search>
+          <query>type=completed job_name="automation-core/PluginTest" job_result="FAILURE" OR job_result="SUCCESS"
+            | transaction job_name startswith=(job_result="FAILURE") endswith=(job_result="SUCCESS")
+            | sort -build_number
+            | streamstats latest(_time) as latest_time by job_name | where _time=latest_time| eval TimeToFix(min)=duration/60
+            | table TimeToFix(min)</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="underLabel">minutes</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <chart>
+        <title>Maximum time to fix for PluginTest job</title>
+        <search>
+          <query>type=completed job_name="automation-core/PluginTest" job_result="FAILURE" OR job_result="SUCCESS"
+            | transaction job_name startswith=(job_result="FAILURE") endswith=(job_result="SUCCESS")
+            | sort -build_number| eval TimeToFix(min)=duration/60
+            | chart max(TimeToFix(min)) over _time</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <table>
+        <title>automation-core/experiment-run-test</title>
+        <search>
+          <query>type=completed job_name="automation-core/experiment-run-test" job_result="FAILURE" OR job_result="SUCCESS"
+            | transaction job_name startswith=(job_result="FAILURE") endswith=(job_result="SUCCESS") maxevents=2
+            |  sort -build_number
+            | eval TimeToFix(minutes)=duration/60
+            | table job_name _time TimeToFix(minutes)
+            | timechart list(TimeToFix(minutes)) span=1d</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <input type="time" token="timeToFixTimeSpan" searchWhenChanged="true">
+        <label>Select time span</label>
+        <default>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </default>
+      </input>
+      <chart>
+        <title>Automation core folder https://qa-jenkins.workhumandev.com/job/automation-core/</title>
+        <search>
+          <query>type=completed job_name="automation-core/*" job_result="FAILURE" OR job_result="SUCCESS"
+            | transaction job_name startswith=(job_result="FAILURE") endswith=(job_result="SUCCESS")
+            | sort -build_number
+            | streamstats latest(_time) as latest_time by job_name
+            | eval "Time to fix (minutes)"=duration/60
+            | where _time=latest_time
+            | table job_name "Time to fix (minutes)"</query>
+          <earliest>$timeToFixTimeSpan.earliest$</earliest>
+          <latest>$timeToFixTimeSpan.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+</form>

@@ -1,0 +1,294 @@
+<form>
+  <label>Code coverage</label>
+  <fieldset submitButton="false" autoRun="true"></fieldset>
+  <row>
+    <panel>
+      <input type="dropdown" token="project" searchWhenChanged="true">
+        <label>Select project</label>
+        <default>conduit</default>
+        <fieldForLabel>projectName</fieldForLabel>
+        <fieldForValue>projectName</fieldForValue>
+        <search>
+          <query>* source = jacoco
+            | dedup projectName</query>
+        </search>
+        <initialValue>conduit</initialValue>
+      </input>
+      <input type="time" token="timeSpan" searchWhenChanged="true">
+        <label>Select the time span</label>
+        <default>
+          <earliest>0</earliest>
+          <latest></latest>
+        </default>
+      </input>
+      <chart>
+        <title>Code coverage per project</title>
+        <search>
+          <query>projectName = "$project$"
+            | table _time, projectName, "overallInstructionCoverage, %"
+            | chart first("overallInstructionCoverage, %") over _time by projectName</query>
+          <earliest>$timeSpan.earliest$</earliest>
+          <latest>$timeSpan.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.text">Timeline</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.text">Coverage, %</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">top</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>Project counters summary</title>
+        <search>
+          <query>* source=jacoco projectName="$project$"
+            | spath
+            | rename projectCounters{}.* as *
+            | eval data=mvzip(mvzip(counterName,covered),missed)
+            | mvexpand data
+            | eval zipped=split(data, ",")
+            | eval counter=mvindex(zipped,0)
+            | eval covered=mvindex(zipped,1)
+            | eval missed=mvindex(zipped,2)
+            | eval percentCoveredBranch = 100*covered/(covered + missed)
+            | chart latest(percentCoveredBranch) over _time by counter</query>
+          <earliest>$timeSpan.earliest$</earliest>
+          <latest>$timeSpan.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>Code coverage per project to compare</title>
+        <search>
+          <query>* source = jacoco
+            | dedup projectName
+            | stats latest("overallInstructionCoverage, %") by projectName</query>
+          <earliest>$timeSpan.earliest$</earliest>
+          <latest>$timeSpan.latest$</latest>
+        </search>
+        <option name="charting.axisTitleX.text">PROJECT</option>
+        <option name="charting.axisTitleY.text">COVERAGE, %</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">top</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>BRANCH</title>
+        <search>
+          <query>* source="jacoco" projectName="$project$"
+            | head 1
+            | spath
+            | rename projectCounters{}.* as *
+            | eval data=mvzip(mvzip(counterName,covered),missed)
+            | mvexpand data
+            | eval zipped=split(data, ",")
+            | eval counter=mvindex(zipped,0)
+            | eval covered=mvindex(zipped,1)
+            | eval missed=mvindex(zipped,2)
+            | where counter="BRANCH"
+            | eval percentCovered = 100*covered/(covered + missed)
+            | gauge percentCovered 0 50 80 100</query>
+          <earliest>$timeSpan.earliest$</earliest>
+          <latest>$timeSpan.latest$</latest>
+        </search>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.chart">fillerGauge</option>
+        <option name="charting.chart.rangeValues">[0,50,80,100]</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.gaugeColors">["0xdc4e41","0xf8be34","0x53a051"]</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>LINE</title>
+        <search>
+          <query>* source="jacoco" projectName="$project$"
+            | head 1
+            | spath
+            | rename projectCounters{}.* as *
+            | eval data=mvzip(mvzip(counterName,covered),missed)
+            | mvexpand data
+            | eval zipped=split(data, ",")
+            | eval counter=mvindex(zipped,0)
+            | eval covered=mvindex(zipped,1)
+            | eval missed=mvindex(zipped,2)
+            | where counter="LINE"
+            | eval percentCovered = 100*covered/(covered + missed)
+            | gauge percentCovered 0 50 80 100</query>
+          <earliest>$timeSpan.earliest$</earliest>
+          <latest>$timeSpan.latest$</latest>
+        </search>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.chart">fillerGauge</option>
+        <option name="charting.chart.rangeValues">[0,50,80,100]</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.gaugeColors">["0xdc4e41","0xf8be34","0x53a051"]</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="height">252</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>INSTRUCTION</title>
+        <search>
+          <query>* source="jacoco" projectName="$project$"
+            | head 1
+            | spath
+            | rename projectCounters{}.* as *
+            | eval data=mvzip(mvzip(counterName,covered),missed)
+            | mvexpand data
+            | eval zipped=split(data, ",")
+            | eval counter=mvindex(zipped,0)
+            | eval covered=mvindex(zipped,1)
+            | eval missed=mvindex(zipped,2)
+            | where counter="INSTRUCTION"
+            | eval percentCovered = 100*covered/(covered + missed)
+            | gauge percentCovered 0 50 80 100</query>
+          <earliest>$timeSpan.earliest$</earliest>
+          <latest>$timeSpan.latest$</latest>
+        </search>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.chart">fillerGauge</option>
+        <option name="charting.chart.rangeValues">[0,50,80,100]</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.gaugeColors">["0xdc4e41","0xf8be34","0x53a051"]</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.size">medium</option>
+        <option name="trellis.splitBy">_aggregation</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>COMPLEXITY</title>
+        <search>
+          <query>* source="jacoco" projectName="$project$"
+            | head 1
+            | spath
+            | rename projectCounters{}.* as *
+            | eval data=mvzip(mvzip(counterName,covered),missed)
+            | mvexpand data
+            | eval zipped=split(data, ",")
+            | eval counter=mvindex(zipped,0)
+            | eval covered=mvindex(zipped,1)
+            | eval missed=mvindex(zipped,2)
+            | where counter="COMPLEXITY"
+            | eval percentCovered = 100*covered/(covered + missed)
+            | gauge percentCovered 0 50 80 100</query>
+          <earliest>$timeSpan.earliest$</earliest>
+          <latest>$timeSpan.latest$</latest>
+        </search>
+        <option name="charting.chart">fillerGauge</option>
+        <option name="charting.chart.rangeValues">[0,50,80,100]</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.gaugeColors">["0xdc4e41","0xf8be34","0x53a051"]</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>METHOD</title>
+        <search>
+          <query>* source="jacoco" projectName="$project$"
+            | head 1
+            | spath
+            | rename projectCounters{}.* as *
+            | eval data=mvzip(mvzip(counterName,covered),missed)
+            | mvexpand data
+            | eval zipped=split(data, ",")
+            | eval counter=mvindex(zipped,0)
+            | eval covered=mvindex(zipped,1)
+            | eval missed=mvindex(zipped,2)
+            | where counter="METHOD"
+            | eval percentCovered = 100*covered/(covered + missed)
+            | gauge percentCovered 0 50 80 100</query>
+          <earliest>$timeSpan.earliest$</earliest>
+          <latest>$timeSpan.latest$</latest>
+        </search>
+        <option name="charting.chart">fillerGauge</option>
+        <option name="charting.chart.rangeValues">[0,50,80,100]</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.gaugeColors">["0xdc4e41","0xf8be34","0x53a051"]</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>CLASS</title>
+        <search>
+          <query>* source="jacoco" projectName="$project$"
+            | head 1
+            | spath
+            | rename projectCounters{}.* as *
+            | eval data=mvzip(mvzip(counterName,covered),missed)
+            | mvexpand data
+            | eval zipped=split(data, ",")
+            | eval counter=mvindex(zipped,0)
+            | eval covered=mvindex(zipped,1)
+            | eval missed=mvindex(zipped,2)
+            | where counter="CLASS"
+            | eval percentCovered = 100*covered/(covered + missed)
+            | gauge percentCovered 0 50 80 100</query>
+          <earliest>$timeSpan.earliest$</earliest>
+          <latest>$timeSpan.latest$</latest>
+        </search>
+        <option name="charting.chart">fillerGauge</option>
+        <option name="charting.chart.rangeValues">[0,50,80,100]</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.gaugeColors">["0xdc4e41","0xf8be34","0x53a051"]</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+</form>

@@ -1,0 +1,78 @@
+<form>
+  <label>Test automation run statistics - Entry point</label>
+  <fieldset submitButton="true" autoRun="true">
+    <input type="dropdown" token="team" searchWhenChanged="false">
+      <label>Select team</label>
+      <choice value="SLF">Team 404</choice>
+      <choice value="CONV">Team Conversation</choice>
+    </input>
+    <input type="dropdown" token="environment" searchWhenChanged="false">
+      <label>Select environment</label>
+      <choice value="aws">Aws</choice>
+      <choice value="staging">Staging</choice>
+      <choice value="preprod">Preprod</choice>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <html id="myheaderStatusRun">
+        <style>
+          #myheaderStatusRun {
+          text-align: center;
+          }
+        </style>
+        <h1>Test automation stats for the latest runs</h1>
+      </html>
+      <chart>
+        <title>Please, click on the pipe chart to view detailed statistics for a particular suite</title>
+        <search>
+          <query>index=testautomation description="$team$*" environment=$environment$| dedup  suiteName | appendpipe [stats count | where count=0] | eval suiteName=if(count==0, "1", suiteName)| table suiteName | rename suiteName as "uniqueSuiteName" | map search="search index=testautomation description=\"$team$*\" environment=$environment$ suiteName=\"$$uniqueSuiteName$$\""| table suiteName  customFields.jenkinsBuild _time|fields suiteName, customFields.jenkinsBuild | stats latest(customFields.jenkinsBuild) as build by suiteName | appendpipe [stats count | where count=0] | eval suiteName=if(count==0, "1", suiteName)| eval build=if(count==0, "1", build)| table build, suiteName | map search="search index=testautomation description=\"$team$*\" environment=$environment$ customFields.jenkinsBuild=$$build$$ suiteName=$$suiteName$$" |table description, executionStatus, customFields.jenkinsBuild suiteName | chart count(description) as testCount BY  suiteName executionStatus  | fields suiteName PASS FAIL SKIP | addtotals fieldname=Total PASS FAIL SKIP
+          </query>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisTitleY2.visibility">collapsed</option>
+        <option name="charting.chart">pie</option>
+        <option name="charting.chart.showLabels">0</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.0</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.fieldColors">{"FAIL": 0xFF0000, "SKIP": FFFF00, "PASS":#12C112}</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="height">350</option>
+        <option name="trellis.enabled">1</option>
+        <option name="trellis.size">medium</option>
+        <drilldown>
+          <link target="_blank">/app/quality-insights/selected_test_suite_run_statistics?form.team=$team$&amp;form.environment=$environment$&amp;form.suiteName=$trellis.split.suiteName$</link>
+        </drilldown>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <html id="myheaderStatus">
+        <style>
+          #myheaderStatus {
+          text-align: center;
+          }
+        </style>
+        <h1>Links to the latest jenkins runs</h1>
+      </html>
+      <table>
+        <search>
+          <query>index=testautomation description="$team$*" environment=$environment$| dedup  suiteName | appendpipe [stats count | where count=0] | eval suiteName=if(count==0, "1", suiteName)| table suiteName | rename suiteName as "uniqueSuiteName" | map search="search index=testautomation description=\"$team$*\" environment=$environment$ suiteName=\"$$uniqueSuiteName$$\""| table suiteName  customFields.jenkinsBuild _time|fields suiteName, customFields.jenkinsBuild | stats latest(customFields.jenkinsBuild) as build by suiteName | appendpipe [stats count | where count=0] | eval suiteName=if(count==0, "1", suiteName)| eval build=if(count==0, "1", build)| table build, suiteName | map search="search index=testautomation description=\"$team$*\" environment=$environment$ customFields.jenkinsBuild=$$build$$ suiteName=$$suiteName$$"|dedup  suiteName  |table suiteName, customFields.jenkinsPipeline | rename customFields.jenkinsPipeline as "jenkinsRunLink"
+          </query>
+        </search>
+        <option name="count">10</option>
+        <option name="dataOverlayMode">heatmap</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">false</option>
+        <drilldown>
+          <link target="_blank">$click.value2|n$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+</form>

@@ -1,0 +1,210 @@
+<form theme="light">
+  <label>[Hoarder] MTTR Clone</label>
+  <fieldset submitButton="false" autoRun="true">
+    <input type="dropdown" token="proj" searchWhenChanged="true">
+      <label>Project Name</label>
+      <search>
+        <query>* source="Hoarder_MTTR" index="testautomation" | dedup projectName</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <choice value="*">All</choice>
+      <fieldForLabel>projectName</fieldForLabel>
+      <fieldForValue>projectName</fieldForValue>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <single>
+        <title>Total Released Stories</title>
+        <search>
+          <query>* source="Hoarder_MTTR" index="testautomation" projectName="$proj$" | dedup projectKey | spath fixVersionIsReleased | search fixVersionIsReleased=true | stats count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="unit">Stories</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <chart>
+        <title>Top 10 Fix Versions by Number of Released Stories</title>
+        <search>
+          <query>* source="Hoarder_MTTR" index="testautomation" projectName="$proj$" fixVersionIsReleased=true | dedup projectKey | top fixVersion</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">all</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Average Delivery Lead Time By Month</title>
+        <search>
+          <query>* source="Hoarder_MTTR" index="testautomation" projectName="$proj$" fixVersionIsReleased=true | dedup projectKey
+            | eval s = strptime(started, "%m/%d/%y %I:%M %p") | eval c = strptime(created, "%m/%d/%y %I:%M %p") | eval sla = (s - c)/86400 | eval d = strptime(done, "%m/%d/%y %I:%M %p") | eval fvd = strptime(fixVersionDate, "%m/%d/%y %I:%M %p") |  eval lc = strptime(lastCommit, "%m/%d/%y %I:%M %p") | eval fc = strptime(firstCommit, "%m/%d/%y %I:%M %p")
+            | eval deliveryLeadTimeFromLastCommitToRelease = (fvd - lc)/86400
+            | eval deliveryLeadTimeFromDoneToRelease = (fvd - d)/86400
+            | eval developmentLeadTimeFirstCommitToLastCommit = (lc - fc)/86400
+            | eval developmentLeadTimeFirstCommitToDone = (d - fc)/86400
+            | eval developmentLeadTimeFromInProgressToDone = (d - s)/86400
+            | eval month = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval Month = strftime(month, "%b")
+            | eval month_number=strftime(month, "%m")
+            | table projectKey, type, fixVersion, affectedVersion, started, created, sla, deliveryLeadTimeFromDoneToRelease, deliveryLeadTimeFromLastCommitToRelease, developmentLeadTimeFirstCommitToLastCommit developmentLeadTimeFirstCommitToDone developmentLeadTimeFromInProgressToDone Month, month_number
+            | stats count as "Total Stories", avg(deliveryLeadTimeFromDoneToRelease) as "Average Delivery Lead Time", min(deliveryLeadTimeFromDoneToRelease) as "Min Lead Time", max(deliveryLeadTimeFromDoneToRelease) as "Max Lead Time" by Month, month_number | sort _ month_number | fields - month_number | trendline sma2("Average Delivery Lead Time") as DLTTREND</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisY.maximumNumber">60</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.overlayFields">DLTTREND</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">small</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Average Delivery Lead Time By Fix Version</title>
+        <search>
+          <query>* source="Hoarder_MTTR" index="testautomation" projectName="$proj$" fixVersionIsReleased=true | dedup projectKey
+            | eval s = strptime(started, "%m/%d/%y %I:%M %p") | eval c = strptime(created, "%m/%d/%y %I:%M %p") | eval sla = (s - c)/86400 | eval d = strptime(done, "%m/%d/%y %I:%M %p") | eval fvd = strptime(fixVersionDate, "%m/%d/%y %I:%M %p") |  eval lc = strptime(lastCommit, "%m/%d/%y %I:%M %p") | eval fc = strptime(firstCommit, "%m/%d/%y %I:%M %p")
+            | eval deliveryLeadTimeFromLastCommitToRelease = (fvd - lc)/86400
+            | eval deliveryLeadTimeFromDoneToRelease = (fvd - d)/86400
+            | eval developmentLeadTimeFirstCommitToLastCommit = (lc - fc)/86400
+            | eval developmentLeadTimeFirstCommitToDone = (d - fc)/86400
+            | eval developmentLeadTimeFromInProgressToDone = (d - s)/86400
+            | eval month = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval Month = strftime(month, "%b")
+            | eval month_number=strftime(month, "%m")
+            | table projectKey, type, fixVersion, affectedVersion, started, created, sla, deliveryLeadTimeFromDoneToRelease, deliveryLeadTimeFromLastCommitToRelease, developmentLeadTimeFirstCommitToLastCommit developmentLeadTimeFirstCommitToDone developmentLeadTimeFromInProgressToDone Month, month_number
+            | stats count as "Total Stories", avg(deliveryLeadTimeFromDoneToRelease) as "Average Delivery Lead Time", min(deliveryLeadTimeFromDoneToRelease) as "Min Lead Time", max(deliveryLeadTimeFromDoneToRelease) as "Max Lead Time" by fixVersion, month_number | sort _ month_number | fields - month_number | trendline sma2("Average Delivery Lead Time") as DLTTREND</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+          <refresh>1m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.text">Days</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.maximumNumber">60</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.overlayFields">DLTTREND</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Average Product Lead Time</title>
+        <search>
+          <query>* source="Hoarder_MTTR" index="testautomation" projectName="$proj$" fixVersionIsReleased=true | dedup projectKey
+            | eval s = strptime(started, "%m/%d/%y %I:%M %p") | eval c = strptime(created, "%m/%d/%y %I:%M %p") | eval sla = (s - c)/86400 | eval d = strptime(done, "%m/%d/%y %I:%M %p") | eval fvd = strptime(fixVersionDate, "%m/%d/%y %I:%M %p") |  eval lc = strptime(lastCommit, "%m/%d/%y %I:%M %p") | eval fc = strptime(firstCommit, "%m/%d/%y %I:%M %p")
+            | eval deliveryLeadTimeFromLastCommitToRelease = (fvd - lc)/86400
+            | eval deliveryLeadTimeFromDoneToRelease = (fvd - d)/86400
+            | eval developmentLeadTimeFirstCommitToLastCommit = (lc - fc)/86400
+            | eval developmentLeadTimeFirstCommitToDone = (d - fc)/86400
+            | eval developmentLeadTimeFromInProgressToDone = (d - s)/86400
+            | eval month = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval Month = strftime(month, "%b")
+            | eval month_number=strftime(month, "%m")
+            | table projectKey, type, fixVersion, affectedVersion, started, created, sla, deliveryLeadTimeFromDoneToRelease, deliveryLeadTimeFromLastCommitToRelease, developmentLeadTimeFirstCommitToLastCommit developmentLeadTimeFirstCommitToDone developmentLeadTimeFromInProgressToDone Month, month_number
+            | stats count as "Total Stories", avg(developmentLeadTimeFromInProgressToDone) as "Average Product Lead Time", min(developmentLeadTimeFromInProgressToDone) as "Min Lead Time", max(developmentLeadTimeFromInProgressToDone) as "Max Lead Time" by Month, month_number | sort _ month_number | fields - month_number | trendline sma2("Average Product Lead Time") as DLTTREND</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.axisY.maximumNumber">50</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.overlayFields">DLTTREND</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>All Indicators</title>
+      <table>
+        <search>
+          <query>* source="Hoarder_MTTR" index="testautomation" projectName="$proj$" fixVersionIsReleased=true | dedup projectKey
+            | eval s = strptime(started, "%m/%d/%y %I:%M %p") | eval c = strptime(created, "%m/%d/%y %I:%M %p") | eval sla = (s - c)/86400 | eval d = strptime(done, "%m/%d/%y %I:%M %p") | eval fvd = strptime(fixVersionDate, "%m/%d/%y %I:%M %p") |  eval lc = strptime(lastCommit, "%m/%d/%y %I:%M %p") | eval fc = strptime(firstCommit, "%m/%d/%y %I:%M %p")
+            | eval deliveryLeadTimeFromLastCommitToRelease = (fvd - lc)/86400
+            | eval deliveryLeadTimeFromDoneToRelease = (fvd - d)/86400
+            | eval developmentLeadTimeFirstCommitToLastCommit = (lc - fc)/86400
+            | eval developmentLeadTimeFirstCommitToDone = (d - fc)/86400
+            | eval developmentLeadTimeFromInProgressToDone = (d - s)/86400
+            | eval month = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval Month = strftime(month, "%b")
+            | eval month_number=strftime(month, "%m")
+            | table projectKey, type, fixVersion, affectedVersion, started, created, sla, deliveryLeadTimeFromDoneToRelease, deliveryLeadTimeFromLastCommitToRelease, developmentLeadTimeFirstCommitToLastCommit developmentLeadTimeFirstCommitToDone developmentLeadTimeFromInProgressToDone Month, month_number</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <refresh>1m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">25</option>
+        <option name="dataOverlayMode">heatmap</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">true</option>
+        <option name="totalsRow">false</option>
+      </table>
+    </panel>
+  </row>
+</form>

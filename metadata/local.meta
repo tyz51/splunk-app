@@ -1,0 +1,57 @@
+[app/ui]
+version = 8.0.3
+modtime = 1588269780.764767000
+
+[app/launcher]
+version = 8.0.3
+modtime = 1588269780.765478000
+
+[nav/default]
+version = 8.0.3
+modtime = 1588269806.440405000
+
+[views/sqribe_statistics]
+owner = admin
+version = 8.0.3
+modtime = 1588269910.606278000
+
+[views/code_coverage_mvp]
+owner = admin
+version = 8.0.3
+modtime = 1588270146.855132000
+
+[views/test_automation_run_statistics_entry_point]
+owner = admin
+version = 8.0.3
+modtime = 1588270133.890017000
+
+[views/jenkins_statistics]
+access = read : [ * ], write : [ admin ]
+export = none
+owner = admin
+version = 8.0.3
+modtime = 1588270178.006248000
+
+[views/hoarder_delivery_lead_time]
+owner = admin
+version = 8.0.3
+modtime = 1588270254.905359000
+
+[views/404_team]
+owner = admin
+version = 8.0.3
+modtime = 1588270333.223908000
+
+[views/404_team__single_test_statistics]
+owner = admin
+version = 8.0.3
+modtime = 1588270515.456190000
+
+[views/404_team__selected_suite_run_statistics]
+owner = admin
+version = 8.0.3
+modtime = 1588270604.961309000
+
+[app/install/install_source_checksum]
+version = 8.0.6
+modtime = 1602749391.281564000

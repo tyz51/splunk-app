@@ -1,0 +1,468 @@
+<dashboard theme="dark">
+  <label>Global Deployment Frequency</label>
+  <row>
+    <panel>
+      <title>Number of Deployments this Week</title>
+      <single>
+        <title>Deployments to Production</title>
+        <search>
+          <query>* source = "Hoarder_DeploymentFrequency" index="testautomation" status="GO"
+            | dedup release_version
+            | spath output=t teams{}
+            | eval date=strptime(release_date, "%d %B %Y")
+            | table release_date, release_version, date, team
+            | where date&gt;=relative_time(now(),"@w1")
+            | stats  count as "Total"</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="unit">x Deploy(s)</option>
+      </single>
+    </panel>
+    <panel>
+      <title>This Week Deploy Status</title>
+      <chart>
+        <search>
+          <query>* source = "Hoarder_DeploymentFrequency" index="testautomation" status="GO"
+            | dedup release_version
+            | eval _time=strptime(release_date, "%d %B %Y")
+            | table release_date, release_version, _time
+            | where _time&gt;=relative_time(now(),"@w1")
+            | stats count(release_version) as "GO" by _time</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>This Week OnHold Reasons</title>
+      <table>
+        <search>
+          <query>* source = "Hoarder_DeploymentFrequency" index="testautomation" status="ONHOLD"
+            | dedup release_version, release_date
+            | eval _time=strptime(release_date, "%d %B %Y")
+            | eval ThisWeek = strftime(now(), "%V")
+            | eval weeksBack = 1
+            | eval weekno = (53-weeksBack-ThisWeek)
+            | eval firstOfWeek=strftime(relative_time(now(),tostring(weekno-tonumber(strftime(now(),"%V")))."w@w1"),"%Y-%m-%d")
+            | eval c_time=strptime(firstOfWeek, "%Y-%m-%d")
+            | table release_date, release_version, _time , firstOfWeek, c_time, onhold_reason
+            | where _time&gt;=c_time
+            | stats values(onhold_reason) as "Reason"</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>This Week Deploy count per Team</title>
+      <chart>
+        <search>
+          <query>* source = "Hoarder_DeploymentFrequency" index="testautomation" status="GO"
+            | dedup release_version
+            | spath output=t teams{}
+            | eval date=strptime(release_date, "%d %B %Y")
+            | mvexpand t
+            | eval team=split(t,",")
+            | table release_date, release_version, date, team
+            | where date&gt;=relative_time(now(),"@w1")
+            | chart count as "Total" by team</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Number of OnHold since daily deploy initiated</title>
+      <single>
+        <title>Since daily deploy initiated</title>
+        <search>
+          <query>* source = "Hoarder_DeploymentFrequency" index="testautomation" status="ONHOLD"
+            | dedup release_version, release_date, status
+            | spath output=t teams{}
+            | eval date=strptime(release_date, "%d %B %Y")
+            | table release_date, release_version, date, team
+            | stats  count as "Total"</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unit">x On-Hold</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Last 3 Week GO's and ONHOLD's</title>
+      <chart>
+        <title>The last 3 weeks deployments per day</title>
+        <search>
+          <query>* source = "Hoarder_DeploymentFrequency" index="testautomation"
+            | dedup release_version, release_date, status
+            | eval _time=strptime(release_date, "%d %B %Y")
+            | eval ThisWeek = strftime(now(), "%V")
+            | eval weeksBack = 3
+            | eval weekno = (53-weeksBack-ThisWeek)
+            | eval firstOfWeek=strftime(relative_time(now(),tostring(weekno-tonumber(strftime(now(),"%V")))."w@w1"),"%Y-%m-%d")
+            | eval c_time=strptime(firstOfWeek, "%Y-%m-%d")
+            | table release_date, release_version, _time , firstOfWeek, c_time, status
+            | where _time&gt;=c_time
+            | stats values(eval(status="GO")) as "GO", values(eval(status="ONHOLD")) as "ONHOLD" by _time</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.fieldColors">{"GO":0x65a637,"ONHOLD":0xf58f39}</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Last 3 Week GO's</title>
+      <chart>
+        <title>The last 3 weeks deployments per day</title>
+        <search>
+          <query>* source = "Hoarder_DeploymentFrequency" index="testautomation" status="GO"
+            | dedup release_version
+            | eval _time=strptime(release_date, "%d %B %Y")
+            | eval ThisWeek = strftime(now(), "%V")
+            | eval weeksBack = 3
+            | eval weekno = (53-weeksBack-ThisWeek)
+            | eval firstOfWeek=strftime(relative_time(now(),tostring(weekno-tonumber(strftime(now(),"%V")))."w@w1"),"%Y-%m-%d")
+            | eval c_time=strptime(firstOfWeek, "%Y-%m-%d")
+            | table release_date, release_version, _time , firstOfWeek, c_time, status
+            | where _time&gt;=c_time
+            | stats first(eval(status="GO")) as "GO" by _time</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>GO by Quarter</title>
+      <chart>
+        <title>Deploy Frequency Overall</title>
+        <search>
+          <query>* source = "Hoarder_DeploymentFrequency" index="testautomation" status="GO"
+            | dedup release_version
+            | spath output=t teams{}
+            | eval date=strptime(release_date, "%d %B %Y")
+            | convert TIMEFORMAT="%m" ctime(date) AS month
+            | convert TIMEFORMAT="%Y" ctime(date) AS year
+            | eval quarter=case(month&lt;=3,"Q1",month&lt;=6,"Q2",month&lt;=9,"Q3",month&lt;=12,"Q4",1=1,"missing")
+            | table release_date, release_version, t, date, quarter, month, year
+            | chart count as "Total" by year, quarter</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>NOGO by Quarter</title>
+      <chart>
+        <title>NoGO or OnHold Frequency Overall</title>
+        <search>
+          <query>* source = "Hoarder_DeploymentFrequency" index="testautomation" ( status="NOGO" OR status="ONHOLD")
+            | dedup release_version, release_date
+            | spath output=t teams{}
+            | eval date=strptime(release_date, "%d %B %Y")
+            | convert TIMEFORMAT="%m" ctime(date) AS month
+            | convert TIMEFORMAT="%Y" ctime(date) AS year
+            | eval quarter=case(month&lt;=3,"Q1",month&lt;=6,"Q2",month&lt;=9,"Q3",month&lt;=12,"Q4",1=1,"missing")
+            | table release_date, release_version, t, date, quarter, month, year
+            | chart count as "Total" by year, quarter</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Team Deploys</title>
+      <chart>
+        <title>Deployment Frequency By Team By Year</title>
+        <search>
+          <query>* source = "Hoarder_DeploymentFrequency" index="testautomation" status="GO"
+            | dedup release_version
+            | spath output=t teams{}
+            | eval date=strptime(release_date, "%d %B %Y")
+            | convert TIMEFORMAT="%m" ctime(date) AS month
+            | convert TIMEFORMAT="%Y" ctime(date) AS year
+            | eval quarter=case(month&lt;=3,"Q1",month&lt;=6,"Q2",month&lt;=9,"Q3",month&lt;=12,"Q4",1=1,"missing")
+            | mvexpand t
+            | eval team=split(t,",")
+            | eval team=trim(team)
+            | eval quarter=case(month&lt;=3,"Q1",month&lt;=6,"Q2",month&lt;=9,"Q3",month&lt;=12,"Q4",1=1,"missing")
+            | table release_date, release_version, date, quarter, month, year, team
+            | chart count as "Total" by team, year</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Mean Time to restore (to Done) Urgent, High and Highest Support Request for 2020</title>
+      <chart>
+        <title>issuetype = "Support Request" AND priority in (High, Highest, "Urgent ") AND status not in ("Will Not Implement", "Not Valid", "Won't Fix", Duplicate, Rejected)</title>
+        <search>
+          <query>* source="Hoarder_SupportRequest" index="testautomation" type="Support Request"
+            | dedup projectKey
+            | where priority in ("High", "Highest", "Urgent")
+            AND
+            NOT status IN ("Will Not Implement","Cannot Reproduce", "Rejected", "Not Valid", "Won't Fix", "Duplicate")
+            | eval c = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval f = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval d = strptime(done, "%m/%d/%y %I:%M %p")
+            | eval mttr_fix = (f - c) / 86400
+            | eval mttr_done = round((d - c) / 86400,2)
+            | eval month = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval Month = strftime(month, "%b")
+            | eval month_number=strftime(month, "%m")
+            | eval year = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval Year = strftime(year, "%Y")
+            | eval _time=strptime(created, "%m/%d/%y %I:%M %p")
+            | table projectKey, type, fixVersion, affectedVersion, fixVersionDate, done, created, mttr_fix, mttr_done, Month, month_number, Year, _time
+            | where Year = 2020
+            | stats values(mttr_done) AS "Time from Create to Done Date" by projectKey, created</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Mean Time to restore (to Release) Urgent, High and Highest Support Request for 2020</title>
+      <chart>
+        <title>issuetype = "Support Request" AND priority in (High, Highest, "Urgent ") AND status not in ("Will Not Implement", "Not Valid", "Won't Fix", Duplicate, Rejected)</title>
+        <search>
+          <query>* source="Hoarder_SupportRequest" index="testautomation" type="Support Request"
+            | dedup projectKey
+            | where priority in ("High", "Highest", "Urgent")
+            AND
+            NOT status IN ("Will Not Implement","Cannot Reproduce", "Rejected", "Not Valid", "Won't Fix", "Duplicate")
+            | eval c = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval f = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval d = strptime(done, "%m/%d/%y %I:%M %p")
+            | eval mttr_fix = (f - c) / 86400
+            | eval mttr_done = round((d - c) / 86400,2)
+            | eval month = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval Month = strftime(month, "%b")
+            | eval month_number=strftime(month, "%m")
+            | eval year = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval Year = strftime(year, "%Y")
+            | eval _time=strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | table projectKey, type, fixVersion, affectedVersion, fixVersionDate, done, created, mttr_fix, mttr_done, Month, month_number, Year, _time
+            | where Year = 2020
+            | stats values(mttr_fix) AS "Time from Create to fixVersion Date" by projectKey, fixVersionDate</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Last 8 weeks Urgent, High and Highest Support Request for 2020</title>
+      <chart>
+        <title>issuetype = "Support Request" AND priority in (High, Highest, "Urgent ") AND status not in ("Will Not Implement", "Not Valid", "Won't Fix", Duplicate, Rejected)</title>
+        <search>
+          <query>* source="Hoarder_SupportRequest" index="testautomation" type="Support Request"
+            | dedup projectKey
+            | where priority in ("High", "Highest", "Urgent")
+            AND
+            NOT status IN ("Will Not Implement","Cannot Reproduce", "Rejected", "Not Valid", "Won't Fix", "Duplicate")
+            | eval c = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval f = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval d = strptime(done, "%m/%d/%y %I:%M %p")
+            | eval mttr_fix = (f - c) / 86400
+            | eval mttr_done = round((d - c) / 86400,2)
+            | eval ThisWeek = strftime(now(), "%V")
+            | eval weeksBack = 8
+            | eval weekno = (53-weeksBack-ThisWeek)
+            | eval firstOfWeek=strftime(relative_time(now(),tostring(weekno-tonumber(strftime(now(),"%V")))."w@w1"),"%m/%d/%y %I:%M %p")
+            | eval c_time=strptime(firstOfWeek, "%m/%d/%y %I:%M %p")
+            | eval year = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval Year = strftime(year, "%Y")
+            | eval Created = strftime(strptime(created, "%m/%d/%y"),"%d/%m/%y")
+            | eval _time = strptime(Created, "%d/%m/%y")
+            | table projectKey, affectedVersion, fixVersion, fixVersionDate, _time , firstOfWeek, c_time, c, f, created, Created, Year
+            | where c&gt;=c_time
+            | timechart count(projectKey) as "Count per day"</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Open Urgent, High and Highest Support Request for 2020</title>
+      <single>
+        <search>
+          <query>* source="Hoarder_SupportRequest" index="testautomation" type="Support Request"
+            | dedup projectKey
+            | where priority in ("High", "Highest", "Urgent")
+            AND
+            NOT status IN ("Will Not Implement","Cannot Reproduce", "Rejected", "Not Valid", "Won't Fix", "Duplicate")
+            | eval year = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval Year = strftime(year, "%Y")
+            | table projectKey,  created, Year, fixVersionIsReleased, done
+            | where Year = 2020
+            | stats count(eval(isnull(done))) AS OPEN</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Closed Open Urgent, High and Highest Support Request for 2020</title>
+      <single>
+        <search>
+          <query>* source="Hoarder_SupportRequest" index="testautomation" type="Support Request"
+            | dedup projectKey
+            | where priority in ("High", "Highest", "Urgent")
+            AND
+            NOT status IN ("Will Not Implement","Cannot Reproduce", "Rejected", "Not Valid", "Won't Fix", "Duplicate")
+            | eval year = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval Year = strftime(year, "%Y")
+            | table projectKey,  created, Year, fixVersionIsReleased, done
+            | where Year = 2020
+            | stats count(eval(isnotnull(done))) AS Closed</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Urgent, High and Highest Support Request for 2020 (Fixed Version assigned)</title>
+      <single>
+        <search>
+          <query>* source="Hoarder_SupportRequest" index="testautomation" type="Support Request"
+            | dedup projectKey
+            | where priority in ("High", "Highest", "Urgent")
+            AND
+            NOT status IN ("Will Not Implement","Cannot Reproduce", "Rejected", "Not Valid", "Won't Fix", "Duplicate")
+            | eval year = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval Year = strftime(year, "%Y")
+            | table projectKey,  created, Year, fixVersionIsReleased
+            | where Year = 2020
+            | stats count(eval(isnotnull(fixVersionDate))) AS FIXED</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Urgent, High and Highest Support Request for 2020 (No fixed Version assigned)</title>
+      <single>
+        <search>
+          <query>* source="Hoarder_SupportRequest" index="testautomation" type="Support Request"
+            | dedup projectKey
+            | where priority in ("High", "Highest", "Urgent")
+            AND
+            NOT status IN ("Will Not Implement","Cannot Reproduce", "Rejected", "Not Valid", "Won't Fix", "Duplicate")
+            | eval year = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval Year = strftime(year, "%Y")
+            | table projectKey,  created, Year, fixVersionIsReleased
+            | where Year = 2020
+            | stats count(eval(isnull(fixVersionDate))) AS FIXED</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Average MTTR for Urgent, High and Highest Support Requests</title>
+      <chart>
+        <title>The average time it takes per team to fix a Support Request, including the count of defects.</title>
+        <search>
+          <query>* source="Hoarder_SupportRequest" index="testautomation" type="Support Request"
+            | dedup projectKey
+            | where priority in ("High", "Highest", "Urgent")
+            AND
+            NOT status IN ("Will Not Implement","Cannot Reproduce", "Rejected", "Not Valid", "Won't Fix", "Duplicate")
+            | eval c = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval f = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval d = strptime(done, "%m/%d/%y %I:%M %p")
+            | eval mttr_fix = (f - c) / 86400
+            | eval mttr_done = round((d - c) / 86400,2)
+            | eval month = strptime(fixVersionDate, "%m/%d/%y %I:%M %p")
+            | eval Month = strftime(month, "%b")
+            | eval month_number=strftime(month, "%m")
+            | eval year = strptime(created, "%m/%d/%y %I:%M %p")
+            | eval Year = strftime(year, "%Y")
+            | eval _time=strptime(created, "%m/%d/%y %I:%M %p")
+            | table projectKey, type, fixVersion, affectedVersion, fixVersionDate, done, created, mttr_fix, mttr_done, Month, month_number, Year, _time, projectName
+            | where Year = 2020
+            | chart eval(round(avg(mttr_done),2)) AS "Time from Create to Done", count(projectKey) AS "Defects count" by projectName</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+</dashboard>

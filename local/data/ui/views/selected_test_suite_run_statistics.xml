@@ -1,0 +1,247 @@
+<form>
+  <label>Selected suite run statistics</label>
+  <fieldset autoRun="true" submitButton="false">
+    <input type="text" token="team">
+      <label>Team abbriviation</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="suiteName">
+      <label>Test suite name</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="environment">
+      <label>Environment</label>
+      <default>*</default>
+    </input>
+  </fieldset>
+  <init>
+    <set token="jenkinsJobName">*</set>
+  </init>
+  <row>
+    <panel id="singlePanel">
+      <html>
+        <style>
+          #singlePanel{
+          width:70% !important;
+          }
+
+        </style>
+      </html>
+      <html id="myheaderStatus">
+        <style>
+          #myheaderStatus {
+          text-align: center;
+          }
+        </style>
+        <h1>Test results status</h1>
+      </html>
+      <chart>
+        <search>
+          <query>index=testautomation| spath description | search customFields.jenkinsPipeline="*$jenkinsJobName$*" | search description="$team$*"  | search suiteName="$suiteName$" | search environment="$environment$" [search index=testautomation| spath description | search description="$team$*"  | search suiteName="$suiteName$" | search environment="$environment$" |stats latest(customFields.jenkinsBuild) as customFields.jenkinsBuild]| eval count = 5| streamstats count| eventstats count as "totalCount" | eventstats count as "choiceCount" by executionStatus  | eval percent=(choiceCount/totalCount)*100 | table testDuration, executionStatus, percent | stats count, values(percent) by executionStatus
+          </query>
+        </search>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="height">500</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.size">large</option>
+        <option name="trellis.splitBy">executionStatus</option>
+        <option name="charting.fieldColors">{"FAIL": 0xFF0000, "SKIP": FFFF00, "PASS":#12C112}</option>
+      </chart>
+    </panel>
+    <panel id="errorSinglePanel">
+      <html>
+        <style>
+          #errorSinglePanel{
+          width:30% !important;
+          }
+
+        </style>
+      </html>
+      <html>
+        <style>
+          #Percentage .single-value .single-result  {
+          font-size: 50px !important;
+          }
+        </style>
+      </html>
+      <html>
+        <style>
+          #Count .single-value .single-result  {
+          font-size: 50px !important;
+          }
+        </style>
+      </html>
+      <html>
+        <style>
+          #Duration .single-value .single-result  {
+          font-size: 40px !important;
+          }
+        </style>
+      </html>
+      <html id="myheader">
+        <style>
+          #myheader {
+          text-align: center;
+          }
+        </style>
+        <h1>Percentage by status</h1>
+      </html>
+      <single id="Percentage">
+        <search>
+          <query>index=testautomation| spath description | search customFields.jenkinsPipeline="*$jenkinsJobName$*"| search description="$team$*"  | search suiteName="$suiteName$" | search environment="$environment$" [search index=testautomation| spath description | search description="$team$*"  | search suiteName="$suiteName$" | search environment="$environment$" |stats latest(customFields.jenkinsBuild) as customFields.jenkinsBuild]| eval count = 5| streamstats count| eventstats count as "totalCount" | eventstats count as "choiceCount" by executionStatus  | eval percent=(choiceCount/totalCount)*0.1*1000 |eval percentString=percent." %"| table percentString, executionStatus, percent | stats values(percentString) by executionStatus
+          </query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">120</option>
+        <option name="numberPrecision">0.0</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="trellis.enabled">1</option>
+        <option name="unitPosition">before</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+      <html tokens="true" encoded="true">
+        <![CDATA[<br/>]]>
+      </html>
+      <html id="myheaderCount">
+        <style>
+          #myheaderCount {
+          text-align: center;
+          }
+        </style>
+        <h1>Test count by status</h1>
+      </html>
+      <single id="Count">
+        <search>
+          <query>index=testautomation| spath description | search customFields.jenkinsPipeline="*$jenkinsJobName$*" | search description="$team$*"  | search suiteName="$suiteName$" | search environment="$environment$" [search index=testautomation| spath description | search description="$team$*"  | search suiteName="$suiteName$" | search environment="$environment$" |stats latest(customFields.jenkinsBuild) as customFields.jenkinsBuild]| eval count = 5| streamstats count| eventstats count as "totalCount" | eventstats count as "choiceCount" by executionStatus  | eval percent=(choiceCount/totalCount)*100 | table testDuration, executionStatus, percent | stats count, values(percent) by executionStatus
+          </query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">120</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="trellis.enabled">1</option>
+        <option name="trellis.splitBy">executionStatus</option>
+      </single>
+      <html tokens="true" encoded="true">
+        <![CDATA[<br/>]]>
+      </html>
+      <html id="myheaderDuration">
+        <style>
+          #myheaderDuration {
+          text-align: center;
+          }
+        </style>
+        <h1>Total test execution time</h1>
+      </html>
+      <single id="Duration">
+        <search>
+          <query>index=testautomation| spath description | search customFields.jenkinsPipeline="*$jenkinsJobName$*"|  search description="$team$*"  | search suiteName="$suiteName$" | search environment="$environment$" [search index=testautomation| spath description | search description="$team$*"  | search suiteName="$suiteName$" | search environment="$environment$" |stats latest(customFields.jenkinsBuild) as customFields.jenkinsBuild]|stats sum(testDuration) as totalDuration | eval inSec = totalDuration / 1000| fieldformat inSec = tostring(inSec, "duration")| eval time=strftime(inSec,"%Hh %Mmin %Ssec") | table time
+          </query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">90</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.splitBy">executionStatus</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <html id="myheaderTopDurations">
+        <style>
+          #myheaderTopDurations {
+          text-align: center;
+          }
+        </style>
+        <h1>Tests duration</h1>
+      </html>
+      <chart>
+        <search>
+          <query>index=testautomation| spath description | search customFields.jenkinsPipeline="*$jenkinsJobName$*"|  search description="$team$*"  | search suiteName="$suiteName$" | search environment="$environment$" [search index=testautomation| spath description | search description="$team$*"  | search suiteName="$suiteName$" | search environment="$environment$" |stats latest(customFields.jenkinsBuild) as customFields.jenkinsBuild]| table description, testDuration | sort -testDuration
+          </query>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">all</option>
+        <option name="height">463</option>
+        <drilldown>
+          <condition match="like('click.value', &quot;other%&quot;)">
+          </condition>
+          <condition>
+            <link target="_blank">/app/quality-insights/single_test_statistics?form.description=$click.value$&amp;form.environment=$environment$&amp;form.jenkinsJobName=$jenkinsJobName$</link>
+          </condition>
+        </drilldown>
+      </chart>
+    </panel>
+    <panel>
+      <html id="myheaderTopTestsDurations">
+        <style>
+          #myheaderTopTestsDurations {
+          text-align: center;
+          }
+        </style>
+        <h1>Top tests duration</h1>
+      </html>
+      <input type="text" token="description">
+        <label>Filter by test description</label>
+        <default>*</default>
+      </input>
+      <table>
+        <search>
+          <query>index=testautomation| spath description | search customFields.jenkinsPipeline="*$jenkinsJobName$*" | search description="$team$*"  | search suiteName="$suiteName$" | search environment="$environment$" [search index=testautomation| spath description | search description="$team$*"  | search suiteName="$suiteName$" | search environment="$environment$" |stats latest(customFields.jenkinsBuild) as customFields.jenkinsBuild]| table description, testDuration | search description=TERM(*$description$*)| sort -testDuration | eval inSec = testDuration / 1000| fieldformat inSec = tostring(inSec, "duration")| eval executionTime=strftime(inSec,"%Hh %Mmin %Ssec %3Nms") | table description, executionTime
+          </query>
+        </search>
+        <option name="count">10</option>
+        <option name="dataOverlayMode">heatmap</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">false</option>
+        <drilldown>
+          <link target="_blank">/app/quality-insights/single_test_statistics?form.description=$click.value2$&amp;form.environment=$environment$&amp;form.jenkinsJobName=$jenkinsJobName$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <html id="myheaderTopTrend">
+        <style>
+          #myheaderTopTrend {
+          text-align: center;
+          }
+        </style>
+        <h1>Historical trend</h1>
+      </html>
+      <chart>
+        <search>
+          <query>index=testautomation| spath description | search customFields.jenkinsPipeline="*$jenkinsJobName$*" | search description="$team$*"  | search suiteName="$suiteName$" | search environment="$environment$" | eval time=strftime(_time,"%Y-%m-%dT%H:%M:%S.%Q")| table description, executionStatus, customFields.jenkinsBuild _time time| sort _time |chart count(description) BY time executionStatus| fields time PASS FAIL SKIP | addtotals fieldname=Total PASS FAIL SKIP
+          </query>
+        </search>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisLabelsX.extendsAxisRange">false</option>
+        <option name="charting.axisTitleY.text">Total test count</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.overlayFields">Total</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.seriesColors">[#12C112,0xFF0000,FFFF00,#000000]</option>
+        <option name="trellis.enabled">0</option>
+      </chart>
+    </panel>
+  </row>
+</form>
