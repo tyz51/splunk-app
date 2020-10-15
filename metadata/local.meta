@@ -55,3 +55,7 @@ modtime = 1588270604.961309000
 [app/install/install_source_checksum]
 version = 8.0.6
 modtime = 1602749391.281564000
+
+[views/global_deployment_frequency]
+version = 8.0.6
+modtime = 1602759031.870639000
