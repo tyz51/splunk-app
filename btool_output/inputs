@@ -55,7 +55,7 @@
 /opt/splunk/etc/apps/git_for_splunk/local/inputs.conf                  disabled = 0
 host = $decideOnStartup
 /opt/splunk/etc/apps/git_for_splunk/local/inputs.conf                  include_btool_output = 1
-/opt/splunk/etc/apps/git_for_splunk/default/inputs.conf                index = _internal
+/opt/splunk/etc/apps/git_for_splunk/local/inputs.conf                  index = _internal
 /opt/splunk/etc/apps/git_for_splunk/local/inputs.conf                  interval = 10
 /opt/splunk/etc/apps/git_for_splunk/default/inputs.conf                python.version = python3
 /opt/splunk/etc/apps/git_for_splunk/local/inputs.conf                  remote_push = 1
